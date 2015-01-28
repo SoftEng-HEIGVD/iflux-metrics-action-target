@@ -1,9 +1,11 @@
 //var moment = require('moment');
 var moment = require('moment-timezone');
 var mongojs = require('mongojs');
-var url = 'mongodb://localhost:27017/iflux';
+//var url = 'mongodb://localhost:27017/iflux';
 var db = mongojs(url, ['metrics']);
 
+var url = process.env.MONGOLAB_URI ||
+  'mongodb://localhost:27017/iflux';
 
 /**
  * Represents a measure
