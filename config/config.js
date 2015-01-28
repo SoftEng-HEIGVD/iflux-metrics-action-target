@@ -28,7 +28,7 @@ var config = {
     app: {
       name: 'iflux-metrics-action-target'
     },
-    port: 3000,
+    port: process.env.PORT,
     db: 'mongodb://localhost/iflux-metrics-action-target-production'
     
   }
