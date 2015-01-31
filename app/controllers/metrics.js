@@ -56,7 +56,6 @@ router.get('/:metric/currentYear', function (req, res) {
   getMetrics(req.params.metric, 'yearly', new Date(), req, res);
 });
 
-
 /** The client has specified values for all parameters */
 router.get('/:metric/:granularity/:timestamp', function (req, res) {
   getMetrics(req.params.metric, req.params.granularity, req.params.timestamp, req, res);

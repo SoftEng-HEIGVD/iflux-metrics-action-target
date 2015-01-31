@@ -5,7 +5,7 @@ $(function () {
       url: "https://iflux.herokuapp.com/events",
       dataType : "json",
       contentType: 'application/json',
-      data: JSON.stringify({
+      data: JSON.stringify([{
         source: "ui",
         type: "io.iflux.event.mousemove",
         timestamp: new Date(),
@@ -13,7 +13,7 @@ $(function () {
           x: event.pageX,
           y: event.pageY
         }
-      })
+      }])
     });
 
   });
