@@ -21,9 +21,16 @@ router.post('/', function (req, res) {
     var action = actions[i];
     if (action.type === "updateMetric") {
       var metric = action.properties.metric;
+      
       var timestamp = action.properties.timestamp;
-      timestamp = new Date();
+      if (timestamp === undefined) {
+        timestamp = new Date();
+      }
+      
       var value = action.properties.value;
+      if (value === undefined) {
+        value = 1;
+      }
       
       var measure = new Measure(metric, value, timestamp);
       router.app.analyticsProvider.reportMeasure(measure);

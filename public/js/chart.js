@@ -1,81 +1,116 @@
 $(function () {
 
-  $.get('/metrics/io.iflux.test.errors', function (metrics) {
+  window.graphMetric = function (metric) {
 
-    var values = [];
-    var data = [];
-    var second = 0;
-    /*
-    for (var minute = 0; minute < 60; minute++) {
-      for (var second = 0; second < 60; second++) {
-        if (metrics[0].secondly[minute] === undefined || metrics[0].secondly[minute][second] === undefined) {
-          //data.push(Date.UTC(1972, 4, 29, minute, second), 0);
-        } else {
-          data.push([Date.UTC(1972, 4, 29, minute, second), metrics[0].secondly[minute][second].count]);
-        }
-      }
-    }
-    */
-    var now = new Date();
-    console.log(now);
-    console.log(now.getFullYear());
-    console.log(now.getMonth()+1);
-    console.log(now.getDate());
-    data.push([Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0), 0]);
-    data.push([Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 59, 59), 0]);
-    for (var minute = 0; minute < 60; minute++) {
-      if (metrics[0].minutely[minute] === undefined) {
-        //data.push(Date.UTC(1972, 4, 29, minute, second), 0);
-      } else {
-        data.push([Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), minute, second), metrics[0].minutely[minute].count]);
-      }
-    }
+    var metricUrl = '/metrics/' + metric;
+    metricUrl = metricUrl.substring(0, metricUrl.lastIndexOf('.')) + '/' + metricUrl.substring(metricUrl.lastIndexOf('.') + 1);
+    //metricUrl = '/metrics/io.iflux.test.alarm/currentHour';
 
-    console.log(data);
+    var graphId = 'container-' + metric;
 
-    $('#container').highcharts({
-      chart: {
-        type: 'column'
-      },
-      title: {
-        text: 'Metrics'
-      },
-      subtitle: {
-        text: 'Sent via iFLUX actions'
-      },
-      xAxis: {
-        type: 'datetime',
-        dateTimeLabelFormats: { // don't display the dummy year
-          month: '%e. %b',
-          year: '%b'
-        },
-        title: {
-          text: 'Date'
-        }
-      },
-      yAxis: {
-        title: {
-          text: 'Value'
-        },
-        min: 0
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br>',
-        pointFormat: '{point.x:%e. %b}: {point.y:.2f} m'
-      },
+    console.log("Graphing metric " + metric);
 
-      plotOptions: {
-        spline: {
-          marker: {
-            enabled: true
+    $.get(metricUrl, function (metrics) {
+
+      var data = [];
+      var now = new Date();
+
+      var dataProperty;
+      var lowerBound;
+      var upperBound;
+      var addData = function() {};
+      var refDate;
+      
+      refDate = new Date(metrics[0].header.startDate);
+      if (metrics[0].header.facet === 'yearly') {
+        dataProperty = 'monthly';
+        lowerBound = Date.UTC(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+        upperBound = Date.UTC(now.getFullYear() + 1, 0, 0, 0, 0, 0);
+        addData = function () {
+          for (var month = 0; month < 12; month++) {
+            if (metrics[0] !== undefined && metrics[0].monthly[month] !== undefined) {
+              refDate.setMonth(month);
+              console.log(">> " + month);
+              data.push([refDate, metrics[0].monthly[month].count]);
+            }
           }
-        }
-      },
+        };
+      } else if (metrics[0].header.facet === 'monthly') {
+        dataProperty = 'daily';
+        lowerBound = Date.UTC(now.getFullYear(), now.getMonth() - 1, 31, 23, 59, 59);
+        upperBound = Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 0, 0, 0);
+        addData = function () {
+          for (var day = 1; day < 31; day++) {
+            if (metrics[0] !== undefined && metrics[0].daily[day] !== undefined) {
+              refDate.setDate(day);
+              data.push([refDate, metrics[0].daily[day].count]);
+            }
+          }
+        };
+      } else if (metrics[0].header.facet === 'daily') {
+        dataProperty = 'hourly';
+        lowerBound = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+        upperBound = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      } else if (metrics[0].header.facet === 'hourly') {
+        dataProperty = 'minutely';
+        lowerBound = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() - 1, 59, 59);
+        upperBound = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0);
+      }
 
-      series: [{
-        name: metrics[0].header.metric,
-        data: data
+      data.push([lowerBound, 0]);
+      addData();
+      data.push([upperBound, 0]);
+
+
+      var graphDiv = $(document.getElementById(graphId));
+      graphDiv.highcharts({
+        chart: {
+          type: 'column',
+          animation: false
+        },
+        title: {
+          text: 'Metrics'
+        },
+        subtitle: {
+          text: 'Sent via iFLUX actions'
+        },
+        xAxis: {
+          type: 'datetime',
+          dateTimeLabelFormats: { // don't display the dummy year
+            month: '%e. %b',
+            year: '%b'
+          },
+          title: {
+            text: 'Date'
+          }
+        },
+        yAxis: {
+          title: {
+            text: 'Value'
+          },
+          min: 0
+        },
+        tooltip: {
+          headerFormat: '{series.name}<br>',
+          pointFormat: '{point.x:%H:%M} - <b>{point.y} events</b>'
+        },
+
+        plotOptions: {
+          spline: {
+            marker: {
+              enabled: true
+            }
+          }
+        },
+
+        series: [{
+          animation: false,
+          name: metrics[0].header.metric,
+          data: data
         }]
+      });
     });
-  });
+
+  };
+
 });

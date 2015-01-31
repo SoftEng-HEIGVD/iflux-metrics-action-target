@@ -1,27 +1,76 @@
 var express = require('express');
 var router = express.Router();
 
+/*
+ * This module is responsible to process all HTTP requests sent to the /metrics
+ * endpoint (and its subresources)
+ */
 module.exports = function (app) {
   router.app = app;
   app.use('/metrics/', router);
 };
 
 
-router.get('/:metric', function (req, res) {
-  router.app.analyticsProvider.getMetrics(req.params.metric, 'hourly', new Date(), function (err, metrics) {
-    res.send(metrics);
-  });  
-});
-           
 /**
- * GET metrics
- * 
- * GET http://localhost:3000/metrics/io.iflux.test.errors/daily/2016-12-31T22:59:59.999Z
+ * When the client sends a request to /metrics, then return a JSON object that
+ * contains the list of all available metrics.
  */
-router.get('/:metric/:granularity/:timestamp', function (req, res) {
-  
-  router.app.analyticsProvider.getMetrics(req.params.metric, req.params.granularity, req.params.timestamp, function (err, metrics) {
+router.get('/', function (req, res, next) {
+  router.app.analyticsProvider.getMetricsDescriptions(function (results) {
+    res.render('metrics', {
+      title: 'List of ' + results.length + ' metrics ',
+      metrics : results
+    });
+  });
+});
+
+/**
+ * This function asks the analytics service to extract the metrics data from persistent storage
+ * and sends the result back to the HTTP client. This function is called by other routes, which
+ * define default values for the metric, granularity and timestamp values.
+ */
+var getMetrics = function (metric, granularity, timestamp, req, res) {
+  router.app.analyticsProvider.getMetrics(metric, granularity, timestamp, function (err, metrics) {
     res.send(metrics);
   });
-  
+};
+
+router.get('/:metric/currentMinute', function (req, res) {
+  getMetrics(req.params.metric, 'minutely', new Date(), req, res);
 });
+    
+router.get('/:metric/currentHour', function (req, res) {
+  getMetrics(req.params.metric, 'hourly', new Date(), req, res);
+});
+
+router.get('/:metric/currentDay', function (req, res) {
+  getMetrics(req.params.metric, 'daily', new Date(), req, res);
+});
+
+router.get('/:metric/currentMonth', function (req, res) {
+  console.log("was here");
+  getMetrics(req.params.metric, 'monthly', new Date(), req, res);
+});
+
+router.get('/:metric/currentYear', function (req, res) {
+  getMetrics(req.params.metric, 'yearly', new Date(), req, res);
+});
+
+
+/** The client has specified values for all parameters */
+router.get('/:metric/:granularity/:timestamp', function (req, res) {
+  getMetrics(req.params.metric, req.params.granularity, req.params.timestamp, req, res);
+});
+
+/** The client has not specified a reference timestamp, so we consider the current period */
+router.get('/:metric/:granularity', function (req, res) {
+  getMetrics(req.params.metric, req.params.granularity, new Date(), req, res);
+});
+
+/** The client has only specified a metric name, so we send the values for the current day */
+router.get('/:metric', function (req, res) {
+  getMetrics(req.params.metric, 'daily', new Date(), req, res);
+});
+
+
+           

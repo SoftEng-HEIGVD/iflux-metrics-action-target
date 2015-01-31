@@ -1,7 +1,6 @@
 //var moment = require('moment');
 var moment = require('moment-timezone');
 var mongojs = require('mongojs');
-//var url = 'mongodb://localhost:27017/iflux';
 var url = process.env.MONGOLAB_URI || 'mongodb://localhost:27017/iflux';
 var db = mongojs(url, ['metrics']);
 
@@ -41,17 +40,54 @@ var AnalyticsProvider = function (options) {
 };
 
 
+AnalyticsProvider.prototype.getMetricsDescriptions = function (callback) {
+  var results = [];
+  var numberOfExpectedResults = 0;
+  var done = false;
 
+  function addResult(collectionName, collection, count) {
+    var metric = collectionName.substring('metrics.'.length);
+    var lastDotIndex = metric.lastIndexOf('.');
+    var urlPrefix = metric.substring(0, lastDotIndex);
+    var granularity = metric.substring(lastDotIndex + 1);
+
+    results.push({
+      metric: metric,
+      collectionName: collectionName,
+      collection: collection,
+      count: count,
+      url: urlPrefix + '/' + granularity
+    });
+    if (done && results.length === numberOfExpectedResults) {
+      callback(results);
+    }
+  }
+
+  function grabCollectionInformation(i, collectionName) {
+    var col = db.collection(collectionName);
+    col.count(function (err, result) {
+      addResult(collectionName, col, result);
+    });
+  }
+
+  db.getCollectionNames(function (err, collectionNames) {
+    for (var i = 0; i < collectionNames.length; i++) {
+      if (collectionNames[i].indexOf('metrics.') === 0) {
+        numberOfExpectedResults++;
+        grabCollectionInformation(i, collectionNames[i]);
+      }
+    }
+    done = true;
+  });
+};
+
+/**
+ * This function defines all the facets that we want to build for metrics. Today, a facet correspond to a time granularity
+ * (yearly, monthly, etc.), but in the future we might have facets based on other properties. 
+ */
 AnalyticsProvider.prototype.getFacets = function (measure) {
   var facets = [];
-  console.log(this);
   var ts = moment(measure.timestamp).tz(this.timeZone);
-  console.log("*** year: " + ts.year());
-  console.log("*** dayOfYear: " + ts.dayOfYear());
-  console.log("*** month: " + ts.months());
-  console.log("*** month2: " + moment().month());
-  console.log("*** minute: " + ts.minute());
-  //console.log(ts);
 
   /*
    * This will produce one document per year in a collection name 'metrics.382.yearly'. Each document will have a yearly total and
@@ -72,6 +108,28 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
       },
       {
         position: 'monthly.' + ts.month()
+      }
+    ]
+  });
+
+  facets.push({
+    collection: 'metrics.' + measure.metric + '.monthly',
+    header: {
+      metric: measure.metric,
+      facet: 'monthly',
+      startDate: moment(ts).startOf('month').toDate(),
+      endDate: moment(ts).endOf('month').toDate(),
+      timeZone: this.timeZone
+    },
+    levels: [
+      {
+        position: 'total'
+      },
+      {
+        position: 'daily.' + ts.day()
+      },
+      {
+        position: 'hourly.' + ts.day() + '.' + ts.hour()
       }
     ]
   });
@@ -124,7 +182,10 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
 
 };
 
-
+/**
+ * Call this function to update a metric, by reporting a measure. The function will update the mongodb documents
+ * that are impacted by the mesaure.
+ */
 AnalyticsProvider.prototype.reportMeasure = function (measure) {
   var facets = this.getFacets(measure);
 
@@ -134,11 +195,19 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
       $set: {},
       $inc: {},
       $min: {},
-      $max: {}
+      $max: {},
+      $push: {}
     };
     delta.$set = {
-      header: facet.header
+      header: facet.header,
+      lastMeasure : measure
     };
+    delta.$push = {
+      last5Measures : {
+        $each: [ measure ],
+        $slice: -5
+      }
+    }
     for (var j = 0; j < facet.levels.length; j++) {
       var level = facet.levels[j];
       delta.$inc[level.position + '.count'] = 1;
@@ -159,7 +228,7 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
 
 };
 
-
+/*
 AnalyticsProvider.prototype.getMetric = function (timestamp, callback) {
   var now = moment(timestamp);
   var startOfHour = moment(now).startOf('hour');
@@ -169,39 +238,43 @@ AnalyticsProvider.prototype.getMetric = function (timestamp, callback) {
     callback(doc);
   });
 };
+*/
 
 
 AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestamp, callback) {
-  console.log("********* " + timestamp);
-  console.log("********* " + moment(timestamp).tz('UTC').format());
-  console.log("********* " + moment(timestamp).tz('Asia/tokyo').format());
-
   var collectionName = 'metrics.' + metric + '.' + granularity;
   var startOf;
+  var selectedFields = {
+    header: 1,
+    lastMeasure : 1,
+    last5Measures : 1,
+    _id: 0
+  };
   switch (granularity) {
   case 'hourly':
     startOf = 'hour';
+    selectedFields.minutely = 1;
     break;
   case 'daily':
     startOf = 'day';
+    selectedFields.hourly = 1;
     break;
   case 'monthly':
     startOf = 'month';
+    selectedFields.daily = 1;
     break;
   case 'yearly':
     startOf = 'year';
+    selectedFields.monthly = 1;
     break;
   }
   var filter = {
     "header.startDate": moment(timestamp).startOf(startOf).toDate()
   };
-  db.collection(collectionName).find(filter, function (err, metrics) {
-    console.log(collectionName);
-    console.log("********* " + moment(timestamp).tz('UTC').startOf(startOf).format());
-    console.log(filter);
-    console.log("Got query results");
-    console.log(metrics);
-    callback(null, metrics);
+
+
+  db.collection(collectionName).find(filter, selectedFields, function (err, metrics) {
+    callback(err, metrics);
   });
 };
 
