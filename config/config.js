@@ -8,7 +8,7 @@ var config = {
     app: {
       name: 'iflux-metrics-action-target'
     },
-    port: 3000,
+    port: 3001,
     db: 'mongodb://localhost/iflux-metrics-action-target-development'
     
   },
@@ -18,7 +18,7 @@ var config = {
     app: {
       name: 'iflux-metrics-action-target'
     },
-    port: 3000,
+    port: 3001,
     db: 'mongodb://localhost/iflux-metrics-action-target-test'
     
   },
