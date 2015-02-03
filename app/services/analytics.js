@@ -269,10 +269,12 @@ AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestam
     break;
   }
   var filter = {
-    "header.startDate": moment(timestamp).startOf(startOf).toDate()
+    "header.startDate": moment(timestamp).tz(this.timeZone).startOf(startOf).toDate()
   };
 
 
+  console.log(filter);
+  console.log(selectedFields);
   db.collection(collectionName).find(filter, selectedFields, function (err, metrics) {
     callback(err, metrics);
   });
