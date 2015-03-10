@@ -1,9 +1,9 @@
-//var moment = require('moment');
-var moment = require('moment-timezone');
-var mongojs = require('mongojs');
-var url = process.env.MONGOLAB_URI || 'mongodb://localhost:27017/iflux';
-var db = mongojs(url, ['metrics']);
+var
+	moment = require('moment-timezone'),
+	mongojs = require('mongojs'),
+	config = require('../../config/config')
 
+var db = mongojs(config.db, ['metrics']);
 
 /**
  * Represents a measure
@@ -83,7 +83,7 @@ AnalyticsProvider.prototype.getMetricsDescriptions = function (callback) {
 
 /**
  * This function defines all the facets that we want to build for metrics. Today, a facet correspond to a time granularity
- * (yearly, monthly, etc.), but in the future we might have facets based on other properties. 
+ * (yearly, monthly, etc.), but in the future we might have facets based on other properties.
  */
 AnalyticsProvider.prototype.getFacets = function (measure) {
   var facets = [];
