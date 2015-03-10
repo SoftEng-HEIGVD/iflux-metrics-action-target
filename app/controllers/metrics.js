@@ -48,7 +48,6 @@ router.get('/:metric/currentDay', function (req, res) {
 });
 
 router.get('/:metric/currentMonth', function (req, res) {
-  console.log("was here");
   getMetrics(req.params.metric, 'monthly', new Date(), req, res);
 });
 
