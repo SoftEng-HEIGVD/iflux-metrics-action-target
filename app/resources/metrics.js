@@ -1,5 +1,6 @@
-var express = require('express');
-var router = express.Router();
+var
+	express = require('express'),
+	router = express.Router();
 
 /*
  * This module is responsible to process all HTTP requests sent to the /metrics
@@ -9,20 +10,6 @@ module.exports = function (app) {
   router.app = app;
   app.use('/metrics/', router);
 };
-
-
-/**
- * When the client sends a request to /metrics, then return a JSON object that
- * contains the list of all available metrics.
- */
-router.get('/', function (req, res, next) {
-  router.app.analyticsProvider.getMetricsDescriptions(function (results) {
-    res.render('metrics', {
-      title: 'List of ' + results.length + ' metrics ',
-      metrics : results
-    });
-  });
-});
 
 /**
  * This function asks the analytics service to extract the metrics data from persistent storage
@@ -38,7 +25,7 @@ var getMetrics = function (metric, granularity, timestamp, req, res) {
 router.get('/:metric/currentMinute', function (req, res) {
   getMetrics(req.params.metric, 'minutely', new Date(), req, res);
 });
-    
+
 router.get('/:metric/currentHour', function (req, res) {
   getMetrics(req.params.metric, 'hourly', new Date(), req, res);
 });
@@ -72,4 +59,3 @@ router.get('/:metric', function (req, res) {
 });
 
 
-           

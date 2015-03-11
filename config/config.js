@@ -60,7 +60,7 @@ var config = {
 		app: {
 			name: 'iflux-metrics-action-target'
 		},
-		port: process.env.PORT || 3000,
+		port: 3000,
 		db: 'mongodb://mongo:' + process.env.MONGO_PORT_27017_TCP_PORT + '/' + (process.env.MONGO_DB || 'iflux-server-docker')
 	}
 };
