@@ -1,8 +1,8 @@
-var express = require('express');
-var router = express.Router();
-
-var Measure = require('../services/analytics').Measure;
-var analyticsProvider;
+var
+	_ = require('underscore'),
+	express = require('express'),
+	router = express.Router(),
+	Measure = require('../services/analytics').Measure;
 
 module.exports = function (app) {
   router.app = app;
@@ -14,27 +14,32 @@ module.exports = function (app) {
 router.post('/', function (req, res) {
   var actions = req.body;
 
-  console.log("Received " + actions.length + " actions on REST API.");
+  if (actions.length > 0) {
+		console.log("Received " + actions.length + " actions on REST API.");
 
-  for (var i = 0; i < actions.length; i++) {
-    var action = actions[i];
-    if (action.type === "updateMetric") {
-      var metric = action.properties.metric;
+		_.each(actions, function (action) {
+	    if (action.type === "updateMetric") {
+	      var metric = action.properties.metric;
 
-      var timestamp = action.properties.timestamp;
-      if (timestamp === undefined) {
-        timestamp = new Date();
-      }
+	      var timestamp = action.properties.timestamp;
+	      if (timestamp === undefined) {
+	        timestamp = new Date();
+	      }
 
-      var value = action.properties.value;
-      if (value === undefined) {
-        value = 1;
-      }
+	      var value = action.properties.value;
+	      if (value === undefined) {
+	        value = 1;
+	      }
 
-      var measure = new Measure(metric, value, timestamp);
-      router.app.analyticsProvider.reportMeasure(measure);
-    }
-  }
+	      var measure = new Measure(metric, value, timestamp);
+	      router.app.analyticsProvider.reportMeasure(measure);
+			}
+		});
+	}
+	else {
+		console.log("No action received on REST API.");
+	}
+
   res.status(204).send();
 });
 
