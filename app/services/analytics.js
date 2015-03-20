@@ -272,14 +272,13 @@ AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestam
     "header.startDate": moment(timestamp).tz(this.timeZone).startOf(startOf).toDate()
   };
 
-
-  console.log(filter);
-  console.log(selectedFields);
+	// TODO: See what we want to log exactly
+  //console.log(filter);
+  //console.log(selectedFields);
   db.collection(collectionName).find(filter, selectedFields, function (err, metrics) {
     callback(err, metrics);
   });
 };
-
 
 exports.AnalyticsProvider = AnalyticsProvider;
 exports.Measure = Measure;
