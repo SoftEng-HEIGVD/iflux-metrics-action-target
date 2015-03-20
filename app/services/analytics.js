@@ -220,8 +220,9 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
     }, delta, {
       upsert: true
     }, function (err, doc, lastErrorObject) {
-      console.log(err);
-      console.log(doc);
+			// TODO: See what we want to log exactly
+      //console.log(err);
+      //console.log(doc);
     });
 
   }
