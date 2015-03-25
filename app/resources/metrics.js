@@ -56,5 +56,3 @@ router.get('/:metric/:granularity', function (req, res) {
 router.get('/:metric', function (req, res) {
   getMetrics(req.params.metric, 'daily', new Date(), req, res);
 });
-
-
