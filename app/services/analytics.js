@@ -1,9 +1,9 @@
-//var moment = require('moment');
-var moment = require('moment-timezone');
-var mongojs = require('mongojs');
-var url = process.env.MONGOLAB_URI || 'mongodb://localhost:27017/iflux';
-var db = mongojs(url, ['metrics']);
+var
+	moment = require('moment-timezone'),
+	mongojs = require('mongojs'),
+	config = require('../../config/config')
 
+var db = mongojs(config.db, ['metrics']);
 
 /**
  * Represents a measure
@@ -83,7 +83,7 @@ AnalyticsProvider.prototype.getMetricsDescriptions = function (callback) {
 
 /**
  * This function defines all the facets that we want to build for metrics. Today, a facet correspond to a time granularity
- * (yearly, monthly, etc.), but in the future we might have facets based on other properties. 
+ * (yearly, monthly, etc.), but in the future we might have facets based on other properties.
  */
 AnalyticsProvider.prototype.getFacets = function (measure) {
   var facets = [];
@@ -220,8 +220,9 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
     }, delta, {
       upsert: true
     }, function (err, doc, lastErrorObject) {
-      console.log(err);
-      console.log(doc);
+			// TODO: See what we want to log exactly
+      //console.log(err);
+      //console.log(doc);
     });
 
   }
@@ -272,14 +273,13 @@ AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestam
     "header.startDate": moment(timestamp).tz(this.timeZone).startOf(startOf).toDate()
   };
 
-
-  console.log(filter);
-  console.log(selectedFields);
+	// TODO: See what we want to log exactly
+  //console.log(filter);
+  //console.log(selectedFields);
   db.collection(collectionName).find(filter, selectedFields, function (err, metrics) {
     callback(err, metrics);
   });
 };
-
 
 exports.AnalyticsProvider = AnalyticsProvider;
 exports.Measure = Measure;
