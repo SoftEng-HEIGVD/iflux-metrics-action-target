@@ -10,8 +10,8 @@ block content
         div(id= 'target')
         ul
           each metric in metrics
-            li 
-              a(href='/metrics/#{metric.url}') #{metric.metric}
+            li
+              a(href=contextRoot + '/metrics/#{metric.url}') #{metric.metric}
 
 
   each metric in metrics
