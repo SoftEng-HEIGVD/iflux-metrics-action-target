@@ -20,6 +20,6 @@ block content
         div(id= 'container-#{metric.metric}', style='width:100%; height:300px;')
           script.
             $(function () {
-              graphMetric('#{metric.metric}');
+              graphMetric('#{contextRoot}/metrics/' + '#{metric.metric}');
             });
 

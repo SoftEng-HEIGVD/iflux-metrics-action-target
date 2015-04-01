@@ -1,8 +1,8 @@
 $(function () {
 
-  window.graphMetric = function (metric) {
+  window.graphMetric = function (baseUrl, metric) {
 
-    var metricUrl = '/metrics/' + metric;
+    var metricUrl = baseUrl + metric;
     metricUrl = metricUrl.substring(0, metricUrl.lastIndexOf('.')) + '/' + metricUrl.substring(metricUrl.lastIndexOf('.') + 1);
     //metricUrl = '/metrics/io.iflux.test.alarm/currentHour';
 
@@ -20,7 +20,7 @@ $(function () {
       var upperBound;
       var addData = function() {};
       var refDate;
-      
+
       refDate = new Date(metrics[0].header.startDate);
       if (metrics[0].header.facet === 'yearly') {
         dataProperty = 'monthly';
