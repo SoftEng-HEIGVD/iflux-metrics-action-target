@@ -1,9 +1,13 @@
 var
+	_ = require('underscore'),
 	moment = require('moment-timezone'),
-	mongojs = require('mongojs'),
-	config = require('../../config/config')
+	pmongo = require('promised-mongo'),
+	Promise = require('bluebird'),
+	config = require('../../config/config');
 
-var db = mongojs(config.db, ['metrics']);
+console.log(config.db);
+
+var db = pmongo(config.db, ['metrics']);
 
 /**
  * Represents a measure
@@ -40,45 +44,52 @@ var AnalyticsProvider = function (options) {
 };
 
 
-AnalyticsProvider.prototype.getMetricsDescriptions = function (callback) {
+AnalyticsProvider.prototype.getMetricsDescriptions = function() {
   var results = [];
-  var numberOfExpectedResults = 0;
-  var done = false;
 
-  function addResult(collectionName, collection, count) {
+  function extractData(collectionName, collection, count) {
     var metric = collectionName.substring('metrics.'.length);
     var lastDotIndex = metric.lastIndexOf('.');
     var urlPrefix = metric.substring(0, lastDotIndex);
     var granularity = metric.substring(lastDotIndex + 1);
 
-    results.push({
-      metric: metric,
-      collectionName: collectionName,
-      collection: collection,
-      count: count,
-      url: urlPrefix + '/' + granularity
-    });
-    if (done && results.length === numberOfExpectedResults) {
-      callback(results);
-    }
+	  var data = {
+		  metric: metric,
+		  collectionName: collectionName,
+		  collection: collection,
+		  count: count,
+		  url: urlPrefix + '/' + granularity
+	  };
+
+	  return data;
   }
 
-  function grabCollectionInformation(i, collectionName) {
+  function grabCollectionInformation(collectionName) {
     var col = db.collection(collectionName);
-    col.count(function (err, result) {
-      addResult(collectionName, col, result);
-    });
+
+	  return col
+		  .count()
+	    .then(function(result) {
+			  results.push(extractData(collectionName, col, result));
+		  });
   }
 
-  db.getCollectionNames(function (err, collectionNames) {
-    for (var i = 0; i < collectionNames.length; i++) {
-      if (collectionNames[i].indexOf('metrics.') === 0) {
-        numberOfExpectedResults++;
-        grabCollectionInformation(i, collectionNames[i]);
-      }
-    }
-    done = true;
-  });
+  return db
+	  .getCollectionNames()
+	  .then(function(collectionNames) {
+		  if (collectionNames.length > 0) {
+			  return Promise
+				  .resolve(collectionNames)
+				  .each(function (collectionName) {
+					  if (collectionName.indexOf('metrics.') === 0) {
+						  return grabCollectionInformation(collectionName);
+					  }
+				  });
+		  }
+	  })
+	  .then(function() {
+		  return results;
+	  });
 };
 
 /**
@@ -187,88 +198,84 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
  * that are impacted by the mesaure.
  */
 AnalyticsProvider.prototype.reportMeasure = function (measure) {
+	console.log(measure);
+
   var facets = this.getFacets(measure);
 
   for (var i = 0; i < facets.length; i++) {
     var facet = facets[i];
-    var delta = {
+
+	  var delta = {
       $set: {},
       $inc: {},
       $min: {},
       $max: {},
       $push: {}
     };
-    delta.$set = {
+
+	  delta.$set = {
       header: facet.header,
       lastMeasure : measure
     };
+
     delta.$push = {
       last5Measures : {
         $each: [ measure ],
         $slice: -5
       }
-    }
-    for (var j = 0; j < facet.levels.length; j++) {
+    };
+
+	  for (var j = 0; j < facet.levels.length; j++) {
       var level = facet.levels[j];
       delta.$inc[level.position + '.count'] = 1;
       delta.$inc[level.position + '.sum'] = measure.value;
       delta.$min[level.position + '.min'] = measure.value;
       delta.$max[level.position + '.max'] = measure.value;
-    };
-    db.collection(facet.collection).update({
-      header: delta.$set.header
-    }, delta, {
-      upsert: true
-    }, function (err, doc, lastErrorObject) {
-			// TODO: See what we want to log exactly
-      //console.log(err);
-      //console.log(doc);
-    });
+    }
 
+	  console.log('save collection: %s', facet.collection);
+
+    db
+	    .collection(facet.collection)
+	    .update({ header: delta.$set.header }, delta, { upsert: true })
+	    .then(function (doc, lastErrorObject) {
+				// TODO: See what we want to log exactly
+	      //console.log(err);
+	      //console.log(doc);
+      });
   }
-
-};
-
-/*
-AnalyticsProvider.prototype.getMetric = function (timestamp, callback) {
-  var now = moment(timestamp);
-  var startOfHour = moment(now).startOf('hour');
-  var doc = db.metrics.findOne({
-    'info.startDate': startOfHour.toDate()
-  }, function (err, doc) {
-    callback(doc);
-  });
-};
-*/
-
+}
 
 AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestamp, callback) {
   var collectionName = 'metrics.' + metric + '.' + granularity;
   var startOf;
-  var selectedFields = {
+
+	var selectedFields = {
     header: 1,
     lastMeasure : 1,
     last5Measures : 1,
     _id: 0
   };
+
   switch (granularity) {
-  case 'hourly':
-    startOf = 'hour';
-    selectedFields.minutely = 1;
-    break;
-  case 'daily':
-    startOf = 'day';
-    selectedFields.hourly = 1;
-    break;
-  case 'monthly':
-    startOf = 'month';
-    selectedFields.daily = 1;
-    break;
-  case 'yearly':
-    startOf = 'year';
-    selectedFields.monthly = 1;
-    break;
+	  case 'hourly':
+	    startOf = 'hour';
+	    selectedFields.minutely = 1;
+	    break;
+	  case 'daily':
+	    startOf = 'day';
+	    selectedFields.hourly = 1;
+	    break;
+	  case 'monthly':
+	    startOf = 'month';
+	    selectedFields.daily = 1;
+	    break;
+	  case 'yearly':
+	    startOf = 'year';
+	    selectedFields.monthly = 1;
+	    break;
   }
+
   var filter = {
     "header.startDate": moment(timestamp).tz(this.timeZone).startOf(startOf).toDate()
   };
@@ -276,9 +283,12 @@ AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestam
 	// TODO: See what we want to log exactly
   //console.log(filter);
   //console.log(selectedFields);
-  db.collection(collectionName).find(filter, selectedFields, function (err, metrics) {
-    callback(err, metrics);
-  });
+  db
+	  .collection(collectionName)
+	  .find(filter, selectedFields)
+		.then(function(metrics) {
+      callback(null, metrics);
+    });
 };
 
 exports.AnalyticsProvider = AnalyticsProvider;

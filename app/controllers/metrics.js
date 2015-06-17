@@ -1,4 +1,5 @@
 var
+	s = require('underscore.string'),
 	express = require('express'),
 	router = express.Router();
 
@@ -8,7 +9,7 @@ var
  */
 module.exports = function (app) {
   router.app = app;
-  app.use('/metrics/', router);
+  app.use('/', router);
 };
 
 /**
@@ -16,10 +17,15 @@ module.exports = function (app) {
  * contains the list of all available metrics.
  */
 router.get('/', function (req, res, next) {
-  router.app.analyticsProvider.getMetricsDescriptions(function (results) {
-    res.render('metrics', {
-      title: 'List of ' + results.length + ' metrics ',
-      metrics : results
+  router.app.analyticsProvider
+	  .getMetricsDescriptions()
+		.then(function (results) {
+      res.render('metrics', {
+	      title: 'List of ' + results.length + ' metrics ',
+	      metrics : results,
+	      fnName: function(metricName) {
+		      return s.camelize(s.replaceAll(metricName, "\\.", " "));
+	      }
+      });
     });
-  });
 });

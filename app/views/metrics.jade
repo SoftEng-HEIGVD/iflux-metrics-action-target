@@ -1,25 +1,35 @@
 extends layout
 
 block content
-  .row
-    .panel.panel-info
-      .panel-heading
-        h3.panel-title Status
-      .panel-body
-        p There are currently <b>#{metrics.length} metrics</b> defined on this server:
-        div(id= 'target')
-        ul
-          each metric in metrics
-            li
-              a(href=contextRoot + '/metrics/#{metric.url}') #{metric.metric}
+	script.
+		var metricFunctions = {};
+
+	.row
+		.panel.panel-info
+			.panel-heading
+				h3.panel-title Status
+			.panel-body
+				p There are currently <b>#{metrics.length} metrics</b> defined on this server:
+				div(id= 'target')
+				ul
+					each metric in metrics
+						li
+							a.graph-link-metric(href='##{fnName(metric.metric)}' data-metric='#{fnName(metric.metric)}') #{metric.metric}
 
 
-  each metric in metrics
-    .row
-      div.col-md-12
-        div(id= 'container-#{metric.metric}', style='width:100%; height:300px;')
-          script.
-            $(function () {
-              graphMetric('#{contextRoot}/metrics/' + '#{metric.metric}');
-            });
+	each metric in metrics
+		.row
+			div.col-md-12
+				a(name='#{fnName(metric.metric)}')
+				div(id= 'container-#{metric.metric}')
+					//p(style='font-size: 2em; font-weight: bold;') No data for #{metric.metric}
+					script.
+						metricFunctions['#{fnName(metric.metric)}'] = function() {
+							graphMetric('#{contextRoot}/', '#{metric.metric}');
+						};
 
+	script.
+		$('.graph-link-metric').click(function (event) {
+			var metric = $(event.target).data('metric');
+			metricFunctions[metric]();
+		});

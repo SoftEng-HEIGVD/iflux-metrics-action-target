@@ -1,3 +1,5 @@
+var previous;
+
 $(function () {
 
   window.graphMetric = function (baseUrl, metric) {
@@ -8,9 +10,19 @@ $(function () {
 
     var graphId = 'container-' + metric;
 
-    console.log("Graphing metric " + metric);
+	  if (previous) {
+		  previous.remove();
+	  }
 
     $.get(metricUrl, function (metrics) {
+	    if (metrics.length == 0) {
+		    var div = $(document.getElementById(graphId));
+	      previous = $('<p style="font-size: 2em; font-weight: bold;">No data for ' + metric + '</p>');
+        $(div).prepend(previous);
+				return;
+	    }
+
+	    console.log("Graphing metric " + metric);
 
       var data = [];
       var now = new Date();
@@ -109,8 +121,8 @@ $(function () {
           data: data
         }]
       });
+
+	    previous = $(graphDiv.find('.highcharts-container'));
     });
-
   };
-
 });

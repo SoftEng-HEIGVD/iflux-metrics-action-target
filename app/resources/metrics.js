@@ -8,7 +8,7 @@ var
  */
 module.exports = function (app) {
   router.app = app;
-  app.use('/metrics/', router);
+  app.use('/', router);
 };
 
 /**
