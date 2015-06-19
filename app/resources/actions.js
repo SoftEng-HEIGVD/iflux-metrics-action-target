@@ -19,10 +19,6 @@ router.post('/', function (req, res) {
 		console.log('Received %s actions on REST API.', actions.length);
 
 		_.each(actions, function (action) {
-			console.log(action);
-
-			console.log('%s vs. %s', action.type, config.app.actionType);
-
 	    if (action.type === config.app.actionType) {
 	      var metric = action.payload.metric;
 
@@ -37,8 +33,6 @@ router.post('/', function (req, res) {
 	      }
 
 	      var measure = new Measure(metric, value, timestamp);
-
-		    console.log(measure);
 
 		    router.app.analyticsProvider.reportMeasure(measure);
 			}

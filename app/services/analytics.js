@@ -5,8 +5,6 @@ var
 	Promise = require('bluebird'),
 	config = require('../../config/config');
 
-console.log(config.db);
-
 var db = pmongo(config.db, ['metrics']);
 
 /**
@@ -198,8 +196,6 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
  * that are impacted by the mesaure.
  */
 AnalyticsProvider.prototype.reportMeasure = function (measure) {
-	console.log(measure);
-
   var facets = this.getFacets(measure);
 
   for (var i = 0; i < facets.length; i++) {
@@ -232,8 +228,6 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
       delta.$min[level.position + '.min'] = measure.value;
       delta.$max[level.position + '.max'] = measure.value;
     }
-
-	  console.log('save collection: %s', facet.collection);
 
     db
 	    .collection(facet.collection)
