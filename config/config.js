@@ -63,7 +63,7 @@ var config = {
 			actionType: process.env.METRICS_ACTION_TYPE
 		},
 		port: 3000,
-		db: 'mongodb://mongo:' + process.env.MONGODB_PORT_27017_TCP_HOST + ':' +process.env.MONGO_PORT_27017_TCP_PORT + '/iflux-server-docker'
+		db: 'mongodb://mongo:' + process.env.MONGO_PORT_27017_TCP_HOST + ':' + process.env.MONGO_PORT_27017_TCP_PORT + '/iflux-server-docker'
 	}
 };
 
