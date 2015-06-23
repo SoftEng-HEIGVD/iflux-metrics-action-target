@@ -12,8 +12,7 @@ RUN mkdir -p /nodejs/iflux-metrics && cp -a /tmp/node_modules /nodejs/iflux-metr
 ADD . /nodejs/iflux-metrics
 
 RUN useradd -m -r -U metrics -u 1114 \
-	&& chown -R metrics:metrics /nodejs/iflux-metrics \
-	&& chown -R metrics:metrics /data/metrics
+	&& chown -R metrics:metrics /nodejs/iflux-metrics
 
 USER metrics
 
