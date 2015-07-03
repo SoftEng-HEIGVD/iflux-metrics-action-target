@@ -20,14 +20,14 @@ router.post('/', function (req, res) {
 
 		_.each(actions, function (action) {
 	    if (action.type === config.app.actionType) {
-	      var metric = action.payload.metric;
+	      var metric = action.properties.metric;
 
-	      var timestamp = action.payload.timestamp;
+	      var timestamp = action.properties.timestamp;
 	      if (timestamp === undefined) {
 	        timestamp = new Date();
 	      }
 
-	      var value = action.payload.value;
+	      var value = action.properties.value;
 	      if (value === undefined) {
 	        value = 1;
 	      }
