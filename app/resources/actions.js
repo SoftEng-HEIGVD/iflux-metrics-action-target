@@ -19,8 +19,11 @@ router.post('/', function (req, res) {
 		console.log('Received %s actions on REST API.', actions.length);
 
 		_.each(actions, function (action) {
+			console.log('Action type: %s', action.type);
 	    if (action.type === config.app.actionType) {
-	      var metric = action.properties.metric;
+		    console.log('Action type: %s to save the metric', action.type);
+
+		    var metric = action.properties.metric;
 
 	      var timestamp = action.properties.timestamp;
 	      if (timestamp === undefined) {
