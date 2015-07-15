@@ -187,6 +187,25 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
     ]
   });
 
+  facets.push({
+    collection: 'metrics.' + measure.metric + '.minutely',
+    header: {
+      metric: measure.metric,
+      facet: 'minutely',
+      startDate: moment(ts).startOf('minute').toDate(),
+      endDate: moment(ts).endOf('minute').toDate(),
+      timeZone: this.timeZone
+    },
+    levels: [
+      {
+        position: 'total'
+      },
+      {
+        position: 'secondly.' + ts.second()
+      }
+    ]
+  });
+
   return facets;
 
 };
@@ -252,10 +271,14 @@ AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestam
   };
 
   switch (granularity) {
-	  case 'hourly':
-	    startOf = 'hour';
-	    selectedFields.minutely = 1;
-	    break;
+    case 'minutely':
+      startOf = 'minute';
+      selectedFields.secondly = 1;
+      break;
+    case 'hourly':
+      startOf = 'hour';
+      selectedFields.minutely = 1;
+      break;
 	  case 'daily':
 	    startOf = 'day';
 	    selectedFields.hourly = 1;
