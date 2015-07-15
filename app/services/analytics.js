@@ -1,9 +1,9 @@
 var
-	_ = require('underscore'),
-	moment = require('moment-timezone'),
-	pmongo = require('promised-mongo'),
-	Promise = require('bluebird'),
-	config = require('../../config/config');
+  _ = require('underscore'),
+  moment = require('moment-timezone'),
+  pmongo = require('promised-mongo'),
+  Promise = require('bluebird'),
+  config = require('../../config/config');
 
 var db = pmongo(config.db, ['metrics']);
 
@@ -42,7 +42,7 @@ var AnalyticsProvider = function (options) {
 };
 
 
-AnalyticsProvider.prototype.getMetricsDescriptions = function() {
+AnalyticsProvider.prototype.getMetricsDescriptions = function () {
   var results = [];
 
   function extractData(collectionName, collection, count) {
@@ -51,43 +51,43 @@ AnalyticsProvider.prototype.getMetricsDescriptions = function() {
     var urlPrefix = metric.substring(0, lastDotIndex);
     var granularity = metric.substring(lastDotIndex + 1);
 
-	  var data = {
-		  metric: metric,
-		  collectionName: collectionName,
-		  collection: collection,
-		  count: count,
-		  url: urlPrefix + '/' + granularity
-	  };
+    var data = {
+      metric: metric,
+      collectionName: collectionName,
+      collection: collection,
+      count: count,
+      url: urlPrefix + '/' + granularity
+    };
 
-	  return data;
+    return data;
   }
 
   function grabCollectionInformation(collectionName) {
     var col = db.collection(collectionName);
 
-	  return col
-		  .count()
-	    .then(function(result) {
-			  results.push(extractData(collectionName, col, result));
-		  });
+    return col
+      .count()
+      .then(function (result) {
+        results.push(extractData(collectionName, col, result));
+      });
   }
 
   return db
-	  .getCollectionNames()
-	  .then(function(collectionNames) {
-		  if (collectionNames.length > 0) {
-			  return Promise
-				  .resolve(collectionNames)
-				  .each(function (collectionName) {
-					  if (collectionName.indexOf('metrics.') === 0) {
-						  return grabCollectionInformation(collectionName);
-					  }
-				  });
-		  }
-	  })
-	  .then(function() {
-		  return results;
-	  });
+    .getCollectionNames()
+    .then(function (collectionNames) {
+      if (collectionNames.length > 0) {
+        return Promise
+          .resolve(collectionNames)
+          .each(function (collectionName) {
+            if (collectionName.indexOf('metrics.') === 0) {
+              return grabCollectionInformation(collectionName);
+            }
+          });
+      }
+    })
+    .then(function () {
+      return results;
+    });
 };
 
 /**
@@ -135,10 +135,10 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
         position: 'total'
       },
       {
-        position: 'daily.' + ts.day()
+        position: 'daily.' + ts.date()
       },
       {
-        position: 'hourly.' + ts.day() + '.' + ts.hour()
+        position: 'hourly.' + ts.date() + '.' + ts.hour()
       }
     ]
   });
@@ -187,25 +187,6 @@ AnalyticsProvider.prototype.getFacets = function (measure) {
     ]
   });
 
-  facets.push({
-    collection: 'metrics.' + measure.metric + '.minutely',
-    header: {
-      metric: measure.metric,
-      facet: 'minutely',
-      startDate: moment(ts).startOf('minute').toDate(),
-      endDate: moment(ts).endOf('minute').toDate(),
-      timeZone: this.timeZone
-    },
-    levels: [
-      {
-        position: 'total'
-      },
-      {
-        position: 'secondly.' + ts.second()
-      }
-    ]
-  });
-
   return facets;
 
 };
@@ -220,7 +201,7 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
   for (var i = 0; i < facets.length; i++) {
     var facet = facets[i];
 
-	  var delta = {
+    var delta = {
       $set: {},
       $inc: {},
       $min: {},
@@ -228,19 +209,19 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
       $push: {}
     };
 
-	  delta.$set = {
+    delta.$set = {
       header: facet.header,
-      lastMeasure : measure
+      lastMeasure: measure
     };
 
     delta.$push = {
-      last5Measures : {
-        $each: [ measure ],
+      last5Measures: {
+        $each: [measure],
         $slice: -5
       }
     };
 
-	  for (var j = 0; j < facet.levels.length; j++) {
+    for (var j = 0; j < facet.levels.length; j++) {
       var level = facet.levels[j];
       delta.$inc[level.position + '.count'] = 1;
       delta.$inc[level.position + '.sum'] = measure.value;
@@ -249,61 +230,65 @@ AnalyticsProvider.prototype.reportMeasure = function (measure) {
     }
 
     db
-	    .collection(facet.collection)
-	    .update({ header: delta.$set.header }, delta, { upsert: true })
-	    .then(function (doc, lastErrorObject) {
-				// TODO: See what we want to log exactly
-	      //console.log(err);
-	      //console.log(doc);
+      .collection(facet.collection)
+      .update({header: delta.$set.header}, delta, {upsert: true})
+      .then(function (doc, lastErrorObject) {
+        // TODO: See what we want to log exactly
+        //console.log(err);
+        //console.log(doc);
       });
   }
-}
+};
 
 AnalyticsProvider.prototype.getMetrics = function (metric, granularity, timestamp, callback) {
-  var collectionName = 'metrics.' + metric + '.' + granularity;
+  var rootGranularity = granularity;
+  if (rootGranularity === "monthly_per_hour") {
+    rootGranularity = "monthly";
+  }
+  var collectionName = 'metrics.' + metric + '.' + rootGranularity;
   var startOf;
 
-	var selectedFields = {
+  var selectedFields = {
     header: 1,
-    lastMeasure : 1,
-    last5Measures : 1,
+    lastMeasure: 1,
+    last5Measures: 1,
     _id: 0
   };
 
   switch (granularity) {
-    case 'minutely':
-      startOf = 'minute';
-      selectedFields.secondly = 1;
-      break;
     case 'hourly':
       startOf = 'hour';
       selectedFields.minutely = 1;
       break;
-	  case 'daily':
-	    startOf = 'day';
-	    selectedFields.hourly = 1;
-	    break;
-	  case 'monthly':
-	    startOf = 'month';
-	    selectedFields.daily = 1;
-	    break;
-	  case 'yearly':
-	    startOf = 'year';
-	    selectedFields.monthly = 1;
-	    break;
+    case 'daily':
+      startOf = 'day';
+      selectedFields.hourly = 1;
+      break;
+    case 'monthly':
+      startOf = 'month';
+      selectedFields.daily = 1;
+      break;
+    case 'monthly_per_hour':
+      startOf = 'month';
+      selectedFields.hourly = 1;
+      break;
+    case 'yearly':
+      startOf = 'year';
+      selectedFields.monthly = 1;
+      break;
   }
 
   var filter = {
     "header.startDate": moment(timestamp).tz(this.timeZone).startOf(startOf).toDate()
   };
 
-	// TODO: See what we want to log exactly
+  // TODO: See what we want to log exactly
   //console.log(filter);
   //console.log(selectedFields);
   db
-	  .collection(collectionName)
-	  .find(filter, selectedFields)
-		.then(function(metrics) {
+    .collection(collectionName)
+    .find(filter, selectedFields)
+    .then(function (metrics) {
       callback(null, metrics);
     });
 };

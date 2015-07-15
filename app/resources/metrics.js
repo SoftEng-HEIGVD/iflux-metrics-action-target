@@ -22,9 +22,10 @@ var getMetrics = function (metric, granularity, timestamp, req, res) {
   });
 };
 
-router.get('/:metric/currentMinute', function (req, res) {
-  getMetrics(req.params.metric, 'minutely', new Date(), req, res);
-});
+// TODO OLiechti: restore minutely
+//router.get('/:metric/currentMinute', function (req, res) {
+//  getMetrics(req.params.metric, 'minutely', new Date(), req, res);
+//});
 
 router.get('/:metric/currentHour', function (req, res) {
   getMetrics(req.params.metric, 'hourly', new Date(), req, res);
